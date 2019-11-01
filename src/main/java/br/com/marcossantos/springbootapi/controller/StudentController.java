@@ -3,6 +3,8 @@ package br.com.marcossantos.springbootapi.controller;
 import java.util.List;
 import java.util.Optional;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import br.com.marcossantos.springbootapi.error.CustomErrorType;
+import br.com.marcossantos.springbootapi.error.ResourceNotFoundException;
 import br.com.marcossantos.springbootapi.model.Student;
 import br.com.marcossantos.springbootapi.repository.StudentRepository;
 
@@ -37,14 +39,23 @@ public class StudentController {
   @GetMapping(path = "/{id}")
   public ResponseEntity<?> getStudentById(@PathVariable("id") Long id) {
     Optional<Student> student = studentDAO.findById(id);
-    if (student == null) {
-      return new ResponseEntity<>(new CustomErrorType("Student not found"), HttpStatus.NOT_FOUND);
+    if (!student.isPresent()) {
+      throw new ResourceNotFoundException("Student not found for ID: " + id);
+    }
+    return new ResponseEntity<>(student, HttpStatus.OK);
+  }
+
+  @GetMapping(path = "/findByName/{name}")
+  public ResponseEntity<?> getStudentByName(@PathVariable("name") String name) {
+    List<Student> student = studentDAO.findByNameIgnoreCaseContaining(name);
+    if (student.isEmpty()) {
+      throw new ResourceNotFoundException("Student not found for name: " + name);
     }
     return new ResponseEntity<>(student, HttpStatus.OK);
   }
 
   @PostMapping
-  public ResponseEntity<?> save(@RequestBody Student student) {
+  public ResponseEntity<?> save(@Valid @RequestBody Student student) {
     return new ResponseEntity<>(studentDAO.save(student), HttpStatus.OK);
   }
 
@@ -52,7 +63,7 @@ public class StudentController {
   public ResponseEntity<?> update(@PathVariable("id") Long id, @RequestBody Student student) {
     Optional<Student> oldStudent = studentDAO.findById(id);
     if (!oldStudent.isPresent()) {
-      return new ResponseEntity<>(new CustomErrorType("Student not found"), HttpStatus.NOT_FOUND);
+      throw new ResourceNotFoundException("Student not found");
     }
     Student newStudent = oldStudent.get();
     newStudent.setName(student.getName());
