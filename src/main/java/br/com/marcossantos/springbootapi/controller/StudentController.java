@@ -6,8 +6,10 @@ import java.util.Optional;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,7 +24,7 @@ import br.com.marcossantos.springbootapi.model.Student;
 import br.com.marcossantos.springbootapi.repository.StudentRepository;
 
 @RestController
-@RequestMapping("students")
+@RequestMapping("v1")
 public class StudentController {
   private final StudentRepository studentDAO;
 
@@ -31,12 +33,12 @@ public class StudentController {
     this.studentDAO = studentDAO;
   }
 
-  @GetMapping
-  public List<Student> listAll() {
-    return studentDAO.findAll();
+  @GetMapping(path = "protected/student")
+  public ResponseEntity<?> listAll(Pageable pageable) {
+    return new ResponseEntity<>(studentDAO.findAll(pageable), HttpStatus.OK);
   }
 
-  @GetMapping(path = "/{id}")
+  @GetMapping(path = "protected/student/{id}")
   public ResponseEntity<?> getStudentById(@PathVariable("id") Long id) {
     Optional<Student> student = studentDAO.findById(id);
     if (!student.isPresent()) {
@@ -45,7 +47,7 @@ public class StudentController {
     return new ResponseEntity<>(student, HttpStatus.OK);
   }
 
-  @GetMapping(path = "/findByName/{name}")
+  @GetMapping(path = "protected/student/findByName/{name}")
   public ResponseEntity<?> getStudentByName(@PathVariable("name") String name) {
     List<Student> student = studentDAO.findByNameIgnoreCaseContaining(name);
     if (student.isEmpty()) {
@@ -54,12 +56,12 @@ public class StudentController {
     return new ResponseEntity<>(student, HttpStatus.OK);
   }
 
-  @PostMapping
+  @PostMapping(path="admin/student")
   public ResponseEntity<?> save(@Valid @RequestBody Student student) {
     return new ResponseEntity<>(studentDAO.save(student), HttpStatus.OK);
   }
 
-  @PutMapping(path = "/{id}")
+  @PutMapping(path = "admin/student/{id}")
   public ResponseEntity<?> update(@PathVariable("id") Long id, @RequestBody Student student) {
     Optional<Student> oldStudent = studentDAO.findById(id);
     if (!oldStudent.isPresent()) {
@@ -71,7 +73,7 @@ public class StudentController {
     return new ResponseEntity<>(HttpStatus.OK);
   }
 
-  @DeleteMapping(path = "/{id}")
+  @DeleteMapping(path = "admin/student/{id}")
   public ResponseEntity<?> delete(@PathVariable("id") Long id) {
     studentDAO.deleteById(id);
     return new ResponseEntity<>(HttpStatus.OK);
